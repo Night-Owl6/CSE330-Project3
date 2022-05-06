@@ -42,7 +42,7 @@ module_param(PID, int, S_IRUSR);
 
 /* Function to be initially run when the module is added to the
    kernel. */
-int memMod_init(void) {
+int memory_manager_init(void) {
 	struct task_struct * task;
 	struct vm_area_struct * vas;
 	int ii;
@@ -214,10 +214,10 @@ int memMod_init(void) {
 
 /* Module function that is run when the module is removed from the
    kernel. This will mainly do cleanup. */
-void memMod_exit(void) {
+void memory_manager_exit(void) {
 	
 }
 
 /* Define the init and exit functions for this kernel module. */
-module_init(memMod_init);
-module_exit(memMod_exit);
+module_init(memory_manager_init);
+module_exit(memory_manager_exit);
