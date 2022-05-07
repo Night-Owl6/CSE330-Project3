@@ -13,7 +13,7 @@
 #include <asm/pgtable.h>
 #include <asm/mmu_context.h>
 #include <linux/hrtimer.h>
-#include <linux/ktimer.h>
+#include <linux/ktime.h>
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("AJAY TIWARI");
