@@ -1,5 +1,5 @@
 /**********************************************************************
- * Authors: Ajay Tiwari
+ * Authors: Ajay Tiwari Bettina Thomas
  **********************************************************************/
 
 #include <linux/init.h>
@@ -14,22 +14,23 @@
 #include <asm/mmu_context.h>
 #include <linux/hrtimer.h>
 #include <linux/ktime.h>
+#include <linux/mm.h>
 
 MODULE_LICENSE("GPL");
-MODULE_AUTHOR("AJAY TIWARI");
+MODULE_AUTHOR("AJAY TIWARI, Bettina Thomas");
 
-int PID = 0;
+static int PID = 1;
 
 module_param(PID, int, 0);
-
 unsigned long timer_interval_ns = 10e9;	//call functions every 10 seconds
 static struct hrtimer hr_timer; 
-struct task_struct *task;
+static struct task_struct *task;
 unsigned long address;
 int memoryCount = 0;
 int accessed = 0;
 int no_accessed = 0;
 int invalid = 0;
+int helper = 0;
 int RSS;
 int WSS;
 int SWAP;
@@ -40,6 +41,18 @@ pmd_t *pmd;
 pte_t *ptep, pte;
 struct vm_area_struct *vma;
 
+void counter(void) {
+	invalid++;
+}
+
+void accessCounter(void) {
+	accessed++;
+}
+
+void NoaccessCounter(void) {
+	no_accessed++;
+}
+
 int ptep_test_and_clear_young(struct vm_area_struct *vma, unsigned long addr, pte_t *ptep) {
 	int ret = 0;
 	if (pte_young(*ptep))
@@ -49,41 +62,42 @@ int ptep_test_and_clear_young(struct vm_area_struct *vma, unsigned long addr, pt
 
 void walk_page_table(struct task_struct *task) {
 	for_each_process(task) {
-		if(task != null && task->pid == PID) {
+		if(task != NULL && task->pid == PID) {
 			vma = task->mm->mmap;
 			
-			while(vma->vm_next != NULL) {
+			while(vma != NULL) {
 				for(address = vma->vm_start; address < vma->vm_end; address += PAGE_SIZE) {
+					helper++;
 					pgd = pgd_offset(task->mm, address);
 					if(pgd_none(*pgd) || pgd_bad(*pgd)) {
-						invalid = invalid + 1;
+						counter();
 					}
 					p4d = p4d_offset(pgd, address);
 					if(p4d_none(*p4d) || p4d_bad(*p4d)) {
-						invalid = invalid + 1;
+						counter();
 					}
 					pud = pud_offset(p4d, address);                   
                     			if(pud_none(*pud) || pud_bad(*pud)) {          
-                        			invalid = invalid + 1;
+                        			counter();
                     			}
                     			pmd = pmd_offset(pud, address);               
                     			if(pmd_none(*pmd) || pmd_bad(*pmd)) {      
-                        			invalid = invalid + 1;
+                        			counter();
                     			} 
                     			ptep = pte_offset_map(pmd, address);     
                     			if(!ptep) {
-                        			invalid = invalid + 1;
+                        			counter();
                     			}
                     			pte = *ptep;
                     			if(ptep_test_and_clear_young(vma, address, ptep) == 1) {
-                    				accessed = accessed + 1;
+                    				accessCounter();
                     			} else {
-                    				no_accessed = no_accessed + 1;
+                    				NoaccessCounter();
                     			}
                     			if(pte_present(pte) == 1) {
                     				memoryCount++;
                     			}  else {
-                    				invalid = invalid + 1;
+                    				counter();
                     			}
 				}
 				vma = vma->vm_next;
@@ -92,7 +106,7 @@ void walk_page_table(struct task_struct *task) {
 			WSS = accessed * 4;
 			SWAP = invalid * 4;
 			
-			printk("PID = %d: RSS = %d KB, WSS = %d KB, SWAP = %d KB", pid, RSS, WSS, SWAP);
+			printk("PID = %d: RSS = %d KB, WSS = %d KB, SWAP = %d KB", PID, RSS, WSS, SWAP);
 		} 
 	}
 }
@@ -108,20 +122,19 @@ enum hrtimer_restart no_restart_callback(struct hrtimer *timer) {
 }
 
 static int __init memory_manager_init(void) {
-	printk("Works\n");
-	ktime_t ktime;
-	ktime = ktime_set(0, timer_interval_ns);
+	ktime_t k_time;
+	k_time = ktime_set(0, timer_interval_ns);
 	hrtimer_init(&hr_timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
 	hr_timer.function = &no_restart_callback;
-	hrtimer_start(&hr_timer, ktime, HRTIMER_MODE_REL);   	
+	hrtimer_start(&hr_timer, k_time, HRTIMER_MODE_REL);   	
 	return 0;
 }
 
 static void __exit memory_manager_exit(void) {
-	printk("Leaving\n");
 	int ret;
+	ret = hrtimer_cancel(&hr_timer);
 	if(ret) {
-		printk("Timer is still in use...\n");
+		printk("Timer is still working..\n");
 	}
 	printk("hr_timer is taken out.\n");
 }
