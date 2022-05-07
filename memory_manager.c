@@ -53,8 +53,8 @@ int walk_page_table(struct task_struct *task) {
 		if(task != NULL && task->pid == PID) {
 			vma = task->mm->mmap;
 			
-			while(vma) {
-				for(address = vma->vm_start; address < vma->vm_end; address += PAGE_SIZE) {
+			while(vma->vm_next != NULL) {
+				for(address = vma->vm_start; address <= vma->vm_end; address += PAGE_SIZE) {
 					pgd = pgd_offset(task->mm, address);
 					if(pgd_none(*pgd) || pgd_bad(*pgd)) {
 						invalid = invalid + 1;
