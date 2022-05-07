@@ -18,9 +18,10 @@
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("AJAY TIWARI");
 
+int PID;
+
 module_param(PID, int, 0);		//try this if not work: S_IRUSR
 
-int PID;
 unsigned long timer_interval_ns = 10e9;	//call functions every 10 seconds
 static struct hrtimer hr_timer; 
 struct task_struct *task;
@@ -47,13 +48,13 @@ int ptep_test_and_clear_young(struct vm_area_struct *vma, unsigned long addr, pt
 	return ret;
 }
 
-int walk_page_table(struct task_struck *task) {
+int walk_page_table(struct task_struct *task) {
 	for_each_process(task) {
-		if(task != null && task->pid == PID) {
+		if(task != NULL && task->pid == PID) {
 			vma = task->mm->mmap;
 			
 			while(vma) {
-				for(address = vma->vm_start; address <= (vma->vm_end-PAGE_SIZE); address += PAGE_SIZE) {
+				for(address = vma->vm_start; address < vma->vm_end; address += PAGE_SIZE) {
 					pgd = pgd_offset(task->mm, address);
 					if(pgd_none(*pgd) || pgd_bad(*pgd)) {
 						invalid = invalid + 1;
@@ -92,7 +93,7 @@ int walk_page_table(struct task_struck *task) {
 			WSS = 2*2*accessed;
 			SWAP = 2*2*invalid;
 			
-			printk("PID = %d: RSS = %d KB, WSS = %d KB, SWAP = %d KB", pid, RSS, WSS, SWAP);
+			printk("PID = %d: RSS = %d KB, WSS = %d KB, SWAP = %d KB", PID, RSS, WSS, SWAP);
 		} 
 	}
 	return 0;
@@ -127,5 +128,5 @@ static void __exit memory_manager_exit(void) {
 	printk("hr_timer is taken out.\n");
 }
 
-module_init(memory_manager);
-module_exit(memory_manager);
+module_init(memory_manager_init);
+module_exit(memory_manager_exit);
