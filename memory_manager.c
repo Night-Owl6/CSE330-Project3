@@ -18,9 +18,9 @@
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("AJAY TIWARI");
 
-int PID;
+int PID = 0;
 
-module_param(PID, int, 0);		//try this if not work: S_IRUSR
+module_param(PID, int, 0);
 
 unsigned long timer_interval_ns = 10e9;	//call functions every 10 seconds
 static struct hrtimer hr_timer; 
@@ -33,7 +33,6 @@ int invalid = 0;
 int RSS;
 int WSS;
 int SWAP;
-unsigned long helperSize; 
 pgd_t *pgd;
 p4d_t *p4d;
 pud_t *pud;
@@ -48,13 +47,13 @@ int ptep_test_and_clear_young(struct vm_area_struct *vma, unsigned long addr, pt
 	return ret;
 }
 
-int walk_page_table(struct task_struct *task) {
+void walk_page_table(struct task_struct *task) {
 	for_each_process(task) {
-		if(task != NULL && task->pid == PID) {
+		if(task != null && task->pid == PID) {
 			vma = task->mm->mmap;
 			
 			while(vma->vm_next != NULL) {
-				for(address = vma->vm_start; address <= vma->vm_end; address += PAGE_SIZE) {
+				for(address = vma->vm_start; address < vma->vm_end; address += PAGE_SIZE) {
 					pgd = pgd_offset(task->mm, address);
 					if(pgd_none(*pgd) || pgd_bad(*pgd)) {
 						invalid = invalid + 1;
@@ -89,14 +88,13 @@ int walk_page_table(struct task_struct *task) {
 				}
 				vma = vma->vm_next;
 			}
-			RSS = 2*2*memoryCount;
-			WSS = 2*2*accessed;
-			SWAP = 2*2*invalid;
+			RSS = memoryCount * 4;
+			WSS = accessed * 4;
+			SWAP = invalid * 4;
 			
-			printk("PID = %d: RSS = %d KB, WSS = %d KB, SWAP = %d KB", PID, RSS, WSS, SWAP);
+			printk("PID = %d: RSS = %d KB, WSS = %d KB, SWAP = %d KB", pid, RSS, WSS, SWAP);
 		} 
 	}
-	return 0;
 }
 
 enum hrtimer_restart no_restart_callback(struct hrtimer *timer) {
